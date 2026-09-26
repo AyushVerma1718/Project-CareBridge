@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: carebridge-demo
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --no-input
+    startCommand: python manage.py migrate --noinput && python manage.py seed_demo && python manage.py seed_shared_history && gunicorn carebridge.wsgi:application
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.11
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
