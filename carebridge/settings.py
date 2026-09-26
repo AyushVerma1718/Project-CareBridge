@@ -1,17 +1,24 @@
-"""
-CareBridge — Django project settings.
-Uses SQLite for local demo.  Do NOT use in production.
-"""
+"""CareBridge settings for local development and a synthetic hosted demo."""
 from pathlib import Path
+import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# SECURITY — never commit a real secret key
-SECRET_KEY = "demo-only-not-for-production-carecode-guard-2025"
-
-DEBUG = True
+# Keep local development convenient while taking the production secret and host
+# from the hosting provider's environment.
+DEBUG = "RENDER" not in os.environ
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
+if not SECRET_KEY:
+    if not DEBUG:
+        raise RuntimeError("DJANGO_SECRET_KEY must be set when DEBUG is disabled.")
+    SECRET_KEY = "demo-only-not-for-production-carecode-guard-2025"
 
 ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
+RENDER_EXTERNAL_HOSTNAME = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+    CSRF_TRUSTED_ORIGINS = [f"https://{RENDER_EXTERNAL_HOSTNAME}"]
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -26,6 +33,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -54,9 +62,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "carebridge.wsgi.application"
 
-# --- Database (SQLite for demo) ---
-# Original project design used MySQL.
-# SQLite is used here so the demo works without a DB server.
+# SQLite keeps the synthetic demo self-contained; its storage on a free host is ephemeral.
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
@@ -72,13 +78,13 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# --- Django REST Framework ---
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework.authentication.SessionAuthentication",
