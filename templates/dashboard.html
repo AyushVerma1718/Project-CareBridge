@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CareBridge — Dashboard</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+      background: #f0f4f8;
+      color: #1e293b;
+      min-height: 100vh;
+    }
+
+    /* ── NAV ── */
+    nav {
+      background: #1d4ed8;
+      padding: 0 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 54px;
+    }
+    .nav-left { display: flex; align-items: center; }
+    .nav-right { display: flex; align-items: center; gap: 14px; }
+    #user-badge {
+      font-size: 13px; color: #bfdbfe;
+    }
+    #user-badge strong { color: #fff; }
+    .btn-logout {
+      font-size: 12px; font-weight: 600; color: #bfdbfe;
+      background: transparent; border: 1px solid #3b82f6;
+      border-radius: 5px; padding: 5px 12px; cursor: pointer;
+      transition: background .15s;
+    }
+    .btn-logout:hover { background: #1e40af; color: #fff; }
+
+    /* ── LAYOUT ── */
+    .container { max-width: 980px; margin: 0 auto; padding: 28px 20px; }
+
+    /* ── ROLE BANNER ── */
+    .role-banner {
+      border-radius: 8px; padding: 12px 16px;
+      font-size: 13px; margin-bottom: 24px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .role-banner.patient  { background: #dbeafe; border: 1px solid #93c5fd; color: #1e40af; }
+    .role-banner.doctor   { background: #dcfce7; border: 1px solid #86efac; color: #166534; }
+    .role-banner.admin    { background: #fef9c3; border: 1px solid #fde047; color: #854d0e; }
+    .role-banner.other    { background: #f1f5f9; border: 1px solid #cbd5e1; color: #475569; }
+    .role-dot {
+      width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+    }
+    .patient .role-dot  { background: #3b82f6; }
+    .doctor  .role-dot  { background: #22c55e; }
+    .admin   .role-dot  { background: #eab308; }
+    .other   .role-dot  { background: #94a3b8; }
+
+    /* ── TABS ── */
+    .tabs { display: flex; gap: 4px; margin-bottom: 20px; }
+    .tab {
+      padding: 8px 18px; border-radius: 6px;
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      border: 1px solid transparent; color: #64748b;
+      background: transparent; transition: all .15s;
+    }
+    .tab:hover { background: #e2e8f0; color: #1e293b; }
+    .tab.active { background: #fff; border-color: #e2e8f0; color: #1d4ed8; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+
+    /* ── PANEL ── */
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* ── CARDS ── */
+    .section-title { font-size: 14px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 14px; }
+
+    .record-list { display: flex; flex-direction: column; gap: 12px; }
+    .record-card {
+      background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;
+      padding: 16px 18px; cursor: pointer; transition: border-color .15s;
+    }
+    .record-card:hover { border-color: #93c5fd; }
+    .record-card .rc-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .record-card .rc-name { font-size: 14px; font-weight: 700; color: #1e293b; }
+    .record-card .rc-mrn  { font-size: 11px; color: #94a3b8; }
+    .record-card .rc-type {
+      font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 20px;
+    }
+    .rc-type.visit_note   { background: #dbeafe; color: #1e40af; }
+    .rc-type.lab_result   { background: #dcfce7; color: #166534; }
+    .rc-type.prescription { background: #fef3c7; color: #92400e; }
+    .record-card .rc-note { font-size: 13px; color: #64748b; line-height: 1.5; }
+    .record-card .rc-date { font-size: 11px; color: #94a3b8; margin-top: 8px; }
+
+    /* ── DETAIL MODAL ── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.4); z-index: 100;
+      align-items: center; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: #fff; border-radius: 10px;
+      padding: 28px; max-width: 520px; width: 100%;
+      position: relative; box-shadow: 0 8px 40px rgba(0,0,0,0.15);
+    }
+    .modal-close {
+      position: absolute; top: 16px; right: 16px;
+      background: none; border: none; font-size: 20px;
+      cursor: pointer; color: #94a3b8; line-height: 1;
+    }
+    .modal-close:hover { color: #1e293b; }
+    .modal h2 { font-size: 16px; font-weight: 700; margin-bottom: 14px; color: #1e293b; }
+    .modal-field { margin-bottom: 10px; }
+    .modal-field label { font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: .05em; display: block; margin-bottom: 3px; }
+    .modal-field p { font-size: 14px; color: #1e293b; line-height: 1.5; }
+    .modal-denied {
+      background: #fef2f2; border: 1px solid #fca5a5;
+      border-radius: 8px; padding: 16px; text-align: center; color: #b91c1c;
+      font-size: 14px; font-weight: 600;
+    }
+
+    /* ── TABLE ── */
+    .table-wrap { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    thead th { background: #f8fafc; padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: .05em; border-bottom: 1px solid #e2e8f0; }
+    tbody td { padding: 10px 14px; border-bottom: 1px solid #f1f5f9; color: #374151; vertical-align: top; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: #f8fafc; }
+    .badge-view   { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 700; background: #dcfce7; color: #166534; }
+    .badge-denied { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 700; background: #fef2f2; color: #b91c1c; }
+    .badge-active  { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 700; background: #dcfce7; color: #166534; }
+    .badge-revoked { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 700; background: #f1f5f9; color: #64748b; }
+
+    /* ── EMPTY / LOADING / ERROR ── */
+    .state-msg {
+      padding: 40px 20px; text-align: center;
+      font-size: 14px; color: #94a3b8;
+    }
+    .state-msg.error-state { color: #b91c1c; }
+
+    /* ── CREATE FORMS (doctor only) ── */
+    .create-form {
+      background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;
+      padding: 20px 22px; margin-bottom: 16px;
+    }
+    .share-card {
+      background: #fff; border: 1px solid #cbd5e1; border-radius: 8px;
+      padding: 18px 20px; margin-bottom: 18px;
+    }
+    .share-card p { color: #64748b; font-size: 13px; line-height: 1.5; margin: 6px 0 12px; }
+    .share-key { display: inline-block; padding: 9px 12px; border-radius: 6px; background: #eff6ff; color: #1d4ed8; font: 700 19px ui-monospace, SFMono-Regular, Consolas, monospace; letter-spacing: .12em; }
+    .share-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .share-actions input { min-width: 240px; padding: 9px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font: inherit; }
+    .btn-secondary { padding: 8px 14px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; color: #334155; font-size: 12px; font-weight: 700; cursor: pointer; }
+    .btn-secondary:hover { background: #f8fafc; }
+    .form-title { font-size: 13px; font-weight: 700; color: #1e293b; margin-bottom: 14px; }
+    .form-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+    }
+    .form-group { display: flex; flex-direction: column; gap: 4px; }
+    .form-group-full { grid-column: 1 / -1; }
+    .form-group label { font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: .04em; }
+    .form-group input, .form-group select, .form-group textarea {
+      padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px;
+      font-size: 13px; color: #1e293b; font-family: inherit;
+      outline: none; resize: vertical; transition: border-color .15s;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: #2bbfab; }
+    .form-error { font-size: 12px; color: #b91c1c; margin: 8px 0 4px; display: none; }
+    .btn-submit {
+      margin-top: 10px; padding: 9px 20px;
+      background: #2bbfab; color: #fff; border: none;
+      border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer;
+      transition: background .15s;
+    }
+    .btn-submit:hover { background: #22a090; }
+
+    /* ── REPORT TYPE BADGES ── */
+    .badge-type-lab       { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 700; background: #dbeafe; color: #1e40af; }
+    .badge-type-imaging   { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 700; background: #f3e8ff; color: #6b21a8; }
+    .badge-type-diagnosis { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 700; background: #fef9c3; color: #854d0e; }
+    .badge-type-other     { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 700; background: #f1f5f9; color: #475569; }
+  </style>
+</head>
+<body>
+
+  <!-- ── NAV ── -->
+  <nav>
+    <div class="nav-left">
+      <!-- CareBridge SVG logo (white/light variant for dark nav) -->
+      <svg width="220" height="38" viewBox="0 0 220 38" role="img" aria-label="CareBridge" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Cross shape -->
+        <rect x="14" y="1"  width="7" height="7"  rx="1.5" fill="#ffffff"/>
+        <rect x="10" y="8"  width="15" height="21" rx="1.5" fill="#ffffff"/>
+        <rect x="2"  y="12" width="31" height="7"  rx="1.5" fill="#ffffff"/>
+        <!-- Teal arc -->
+        <path d="M3 30 Q17 16 31 25" stroke="#2bbfab" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+        <!-- Coral arc -->
+        <path d="M9 32 Q17 20 29 28" stroke="#e8684a" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+        <!-- Wordmark: "Care" in white -->
+        <text x="40" y="26" font-family="-apple-system,Segoe UI,sans-serif" font-size="18" font-weight="800" fill="#ffffff">Care</text>
+        <!-- Wordmark: "Bridge" in teal -->
+        <text x="81" y="26" font-family="-apple-system,Segoe UI,sans-serif" font-size="18" font-weight="800" fill="#2bbfab">Bridge</text>
+      </svg>
+    </div>
+    <div class="nav-right">
+      <span id="user-badge">Signed in as <strong id="nav-username">…</strong></span>
+      <button class="btn-logout" id="logout-btn">Sign out</button>
+    </div>
+  </nav>
+
+  <!-- ── MAIN ── -->
+  <div class="container">
+
+    <!-- role banner -->
+    <div class="role-banner other" id="role-banner">
+      <div class="role-dot"></div>
+      <span id="role-text">Loading…</span>
+    </div>
+
+    <!-- tabs -->
+    <div class="tabs">
+      <button class="tab active" data-tab="records">Medical Records</button>
+      <button class="tab" data-tab="prescriptions">Prescriptions</button>
+      <button class="tab" data-tab="reports">Reports</button>
+      <button class="tab patient-only doctor-only" data-tab="uploads" style="display:none">My Uploads</button>
+      <button class="tab" data-tab="consent">Consents</button>
+      <button class="tab admin-only" data-tab="audit" style="display:none">Audit Log</button>
+    </div>
+
+    <!-- records panel -->
+    <div class="panel active" id="panel-records">
+      <div class="section-title">Medical Records</div>
+      <div class="record-list" id="records-list">
+        <div class="state-msg">Loading…</div>
+      </div>
+    </div>
+
+    <!-- consent panel -->
+    <div class="panel" id="panel-consent">
+      <div class="section-title">Consent Records</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Patient</th><th>Provider</th><th>Granted At</th><th>Status</th></tr></thead>
+          <tbody id="consent-body"><tr><td colspan="4" class="state-msg">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- prescriptions panel -->
+    <div class="panel" id="panel-prescriptions">
+      <div class="section-title">Prescriptions</div>
+      <!-- create form — doctors only -->
+      <div class="create-form doctor-only" id="rx-form-wrap" style="display:none">
+        <div class="form-title">Issue New Prescription</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Patient ID</label>
+            <input type="number" id="rx-patient" placeholder="Patient ID" />
+          </div>
+          <div class="form-group">
+            <label>Medication</label>
+            <input type="text" id="rx-medication" placeholder="e.g. Amoxicillin 500mg" />
+          </div>
+          <div class="form-group">
+            <label>Dosage</label>
+            <input type="text" id="rx-dosage" placeholder="e.g. 1 tablet 3x daily" />
+          </div>
+          <div class="form-group">
+            <label>Valid Until</label>
+            <input type="date" id="rx-valid-until" />
+          </div>
+          <div class="form-group form-group-full">
+            <label>Instructions</label>
+            <textarea id="rx-instructions" rows="2" placeholder="Additional instructions…"></textarea>
+          </div>
+        </div>
+        <div class="form-error" id="rx-error"></div>
+        <button class="btn-submit" id="rx-submit">Issue Prescription</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Patient</th><th>Medication</th><th>Dosage</th><th>Instructions</th><th>Issued At</th><th>Valid Until</th></tr></thead>
+          <tbody id="rx-body"><tr><td colspan="6"><div class="state-msg">Loading…</div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- reports panel -->
+    <div class="panel" id="panel-reports">
+      <div class="section-title">Reports</div>
+      <!-- create form — doctors only -->
+      <div class="create-form doctor-only" id="rpt-form-wrap" style="display:none">
+        <div class="form-title">File New Report</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Patient ID</label>
+            <input type="number" id="rpt-patient" placeholder="Patient ID" />
+          </div>
+          <div class="form-group">
+            <label>Report Type</label>
+            <select id="rpt-type">
+              <option value="lab">Lab Result</option>
+              <option value="imaging">Imaging</option>
+              <option value="diagnosis">Diagnosis</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="form-group form-group-full">
+            <label>Title</label>
+            <input type="text" id="rpt-title" placeholder="e.g. Blood Panel Q3 2026" />
+          </div>
+          <div class="form-group form-group-full">
+            <label>Summary</label>
+            <textarea id="rpt-summary" rows="3" placeholder="Report findings…"></textarea>
+          </div>
+        </div>
+        <div class="form-error" id="rpt-error"></div>
+        <button class="btn-submit" id="rpt-submit">File Report</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Patient</th><th>Type</th><th>Title</th><th>Summary</th><th>Filed By</th><th>Filed At</th></tr></thead>
+          <tbody id="rpt-body"><tr><td colspan="6"><div class="state-msg">Loading…</div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- uploads panel (patients only) -->
+    <div class="panel" id="panel-uploads">
+      <div class="section-title">My Uploaded Documents</div>
+      <div class="share-card patient-only" id="patient-key-card" style="display:none">
+        <div class="form-title">My patient sharing key</div>
+        <p>Share this key directly with your doctor to let them view your older prescriptions, reports, and uploaded documents. Regenerating it revokes existing doctor access.</p>
+        <div class="share-actions">
+          <code class="share-key" id="patient-share-key">Loading…</code>
+          <button class="btn-secondary" id="copy-share-key" type="button">Copy key</button>
+          <button class="btn-secondary" id="rotate-share-key" type="button">Create new key and revoke access</button>
+        </div>
+        <div class="form-error" id="key-error"></div>
+      </div>
+      <!-- upload form -->
+      <div class="create-form patient-only" id="upload-form-wrap" style="display:none">
+        <div class="form-title">Upload a Document</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Document Type</label>
+            <select id="upload-type">
+              <option value="prescription">Prescription</option>
+              <option value="report">Report / Lab Result</option>
+              <option value="imaging">Imaging / Scan</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Title</label>
+            <input type="text" id="upload-title" placeholder="e.g. Prescription from Jan 2025" />
+          </div>
+          <div class="form-group form-group-full">
+            <label>Notes (optional)</label>
+            <textarea id="upload-notes" rows="2" placeholder="Any additional notes…"></textarea>
+          </div>
+          <div class="form-group form-group-full">
+            <label>File (PDF, JPG, PNG)</label>
+            <input type="file" id="upload-file" accept=".pdf,.jpg,.jpeg,.png" />
+          </div>
+        </div>
+        <div class="form-error" id="upload-error"></div>
+        <button class="btn-submit" id="upload-submit">Upload Document</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Type</th><th>Title</th><th>Notes</th><th>Uploaded At</th><th>File</th></tr></thead>
+          <tbody id="uploads-body"><tr><td colspan="5"><div class="state-msg">Loading…</div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="share-card doctor-only" id="doctor-unlock-card" style="display:none">
+      <div class="form-title">View a patient’s shared history</div>
+      <p>Enter the key the patient shared with you. Their older prescriptions, reports, and uploaded documents will then appear in the tabs below.</p>
+      <div class="share-actions">
+        <input type="text" id="patient-share-key-input" maxlength="16" autocomplete="off" placeholder="Enter patient sharing key" aria-label="Patient sharing key" />
+        <button class="btn-submit" id="unlock-patient" type="button">Unlock shared records</button>
+      </div>
+      <div class="form-error" id="unlock-error"></div>
+    </div>
+
+    <!-- audit panel -->
+    <div class="panel" id="panel-audit">
+      <div class="section-title">Audit Log</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Time</th><th>Actor</th><th>Patient</th><th>Action</th><th>Detail</th></tr></thead>
+          <tbody id="audit-body"><tr><td colspan="5" class="state-msg">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /container -->
+
+  <!-- ── RECORD DETAIL MODAL ── -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal">
+      <button class="modal-close" id="modal-close">&times;</button>
+      <div id="modal-content"></div>
+    </div>
+  </div>
+
+  <script>
+    const csrfToken = '{{ csrf_token }}';
+
+    // ── helpers ──────────────────────────────────────────────────────────────
+    async function apiFetch(url) {
+      const res = await fetch(url, { credentials: 'same-origin' });
+      if (res.status === 401 || res.status === 403) {
+        window.location.href = '/';
+        return null;
+      }
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    }
+
+    function fmtDate(iso) {
+      if (!iso) return '—';
+      return new Date(iso).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' });
+    }
+
+    // ── auth ─────────────────────────────────────────────────────────────────
+    let currentRole = 'other';
+
+    // ── tabs ─────────────────────────────────────────────────────────────────
+    document.querySelectorAll('.tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+        if (btn.dataset.tab === 'audit' && !auditLoaded) loadAudit();
+        if (btn.dataset.tab === 'consent' && !consentLoaded) loadConsent();
+        if (btn.dataset.tab === 'prescriptions' && !rxLoaded) loadPrescriptions();
+        if (btn.dataset.tab === 'reports' && !rptLoaded) loadReports();
+      });
+    });
+
+    // ── records ──────────────────────────────────────────────────────────────
+    async function loadRecords() {
+      const el = document.getElementById('records-list');
+      try {
+        const data = await apiFetch('/api/records/');
+        if (!data) return;
+        if (!data.length) {
+          el.innerHTML = '<div class="state-msg">No records visible to your account.</div>';
+          return;
+        }
+        el.innerHTML = data.map(r => `
+          <div class="record-card" data-id="${r.id}">
+            <div class="rc-header">
+              <div>
+                <span class="rc-name">${r.patient_name}</span>
+                <span class="rc-mrn"> &bull; MRN ${r.patient_mrn}</span>
+              </div>
+              <span class="rc-type ${r.record_type}">${r.record_type.replace('_', ' ')}</span>
+            </div>
+            <div class="rc-note">${r.note}</div>
+            <div class="rc-date">${fmtDate(r.created_at)}</div>
+          </div>
+        `).join('');
+
+        // click to open detail modal
+        document.querySelectorAll('.record-card').forEach(card => {
+          card.addEventListener('click', () => openRecord(parseInt(card.dataset.id, 10), data));
+        });
+      } catch (e) {
+        el.innerHTML = `<div class="state-msg error-state">Failed to load records: ${e.message}</div>`;
+      }
+    }
+
+    function openRecord(id, data) {
+      const r = data.find(x => x.id === id);
+      if (!r) return;
+      document.getElementById('modal-content').innerHTML = `
+        <h2>Record Detail</h2>
+        <div class="modal-field"><label>Patient</label><p>${r.patient_name}</p></div>
+        <div class="modal-field"><label>MRN</label><p>${r.patient_mrn}</p></div>
+        <div class="modal-field"><label>Type</label><p>${r.record_type.replace('_', ' ')}</p></div>
+        <div class="modal-field"><label>Note</label><p>${r.note}</p></div>
+        <div class="modal-field"><label>Created</label><p>${fmtDate(r.created_at)}</p></div>
+      `;
+      document.getElementById('modal-overlay').classList.add('open');
+    }
+
+    document.getElementById('modal-close').addEventListener('click', () => {
+      document.getElementById('modal-overlay').classList.remove('open');
+    });
+    document.getElementById('modal-overlay').addEventListener('click', e => {
+      if (e.target === e.currentTarget) document.getElementById('modal-overlay').classList.remove('open');
+    });
+
+    // ── consent ───────────────────────────────────────────────────────────────
+    let consentLoaded = false;
+    async function loadConsent() {
+      consentLoaded = true;
+      const tbody = document.getElementById('consent-body');
+      try {
+        const data = await apiFetch('/api/consent/');
+        if (!data) return;
+        if (!data.length) {
+          tbody.innerHTML = '<tr><td colspan="4"><div class="state-msg">No consents found.</div></td></tr>';
+          return;
+        }
+        tbody.innerHTML = data.map(c => `
+          <tr>
+            <td>${c.patient_name}</td>
+            <td>${c.provider_name}</td>
+            <td>${fmtDate(c.granted_at)}</td>
+            <td><span class="${c.is_active ? 'badge-active' : 'badge-revoked'}">${c.is_active ? 'Active' : 'Revoked'}</span></td>
+          </tr>
+        `).join('');
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="4"><div class="state-msg error-state">${e.message}</div></td></tr>`;
+      }
+    }
+
+    // ── prescriptions ─────────────────────────────────────────────────────────
+    let rxLoaded = false;
+    async function loadPrescriptions() {
+      rxLoaded = true;
+      const tbody = document.getElementById('rx-body');
+      try {
+        const data = await apiFetch('/api/prescriptions/');
+        if (!data) return;
+        if (!data.length) {
+          tbody.innerHTML = '<tr><td colspan="6"><div class="state-msg">No prescriptions found.</div></td></tr>';
+          return;
+        }
+        tbody.innerHTML = data.map(p => `
+          <tr>
+            <td>${p.patient_name}</td>
+            <td><strong>${p.medication}</strong></td>
+            <td>${p.dosage}</td>
+            <td>${p.instructions || '—'}</td>
+            <td>${fmtDate(p.issued_at)}</td>
+            <td>${p.valid_until || '—'}</td>
+          </tr>
+        `).join('');
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="6"><div class="state-msg error-state">${e.message}</div></td></tr>`;
+      }
+    }
+
+    document.getElementById('rx-submit').addEventListener('click', async () => {
+      const errEl = document.getElementById('rx-error');
+      errEl.style.display = 'none';
+      const payload = {
+        patient:      parseInt(document.getElementById('rx-patient').value),
+        issued_by:    currentProviderId,
+        medication:   document.getElementById('rx-medication').value.trim(),
+        dosage:       document.getElementById('rx-dosage').value.trim(),
+        instructions: document.getElementById('rx-instructions').value.trim(),
+        valid_until:  document.getElementById('rx-valid-until').value || null,
+      };
+      if (!payload.patient || !payload.medication || !payload.dosage) {
+        errEl.textContent = 'Patient ID, medication and dosage are required.';
+        errEl.style.display = 'block'; return;
+      }
+      try {
+        const res = await fetch('/api/prescriptions/', {
+          method: 'POST', credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          errEl.textContent = JSON.stringify(err); errEl.style.display = 'block'; return;
+        }
+        // reset + reload
+        ['rx-patient','rx-medication','rx-dosage','rx-instructions','rx-valid-until'].forEach(id => document.getElementById(id).value = '');
+        rxLoaded = false; loadPrescriptions();
+      } catch (e) {
+        errEl.textContent = e.message; errEl.style.display = 'block';
+      }
+    });
+
+    // ── reports ───────────────────────────────────────────────────────────────
+    let rptLoaded = false;
+    async function loadReports() {
+      rptLoaded = true;
+      const tbody = document.getElementById('rpt-body');
+      try {
+        const data = await apiFetch('/api/reports/');
+        if (!data) return;
+        if (!data.length) {
+          tbody.innerHTML = '<tr><td colspan="6"><div class="state-msg">No reports found.</div></td></tr>';
+          return;
+        }
+        tbody.innerHTML = data.map(r => `
+          <tr>
+            <td>${r.patient_name}</td>
+            <td><span class="badge-type-${r.report_type}">${r.report_type}</span></td>
+            <td><strong>${r.title}</strong></td>
+            <td>${r.summary}</td>
+            <td>${r.filed_by_name}</td>
+            <td>${fmtDate(r.filed_at)}</td>
+          </tr>
+        `).join('');
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="6"><div class="state-msg error-state">${e.message}</div></td></tr>`;
+      }
+    }
+
+    document.getElementById('rpt-submit').addEventListener('click', async () => {
+      const errEl = document.getElementById('rpt-error');
+      errEl.style.display = 'none';
+      const payload = {
+        patient:     parseInt(document.getElementById('rpt-patient').value),
+        filed_by:    currentProviderId,
+        report_type: document.getElementById('rpt-type').value,
+        title:       document.getElementById('rpt-title').value.trim(),
+        summary:     document.getElementById('rpt-summary').value.trim(),
+      };
+      if (!payload.patient || !payload.title || !payload.summary) {
+        errEl.textContent = 'Patient ID, title and summary are required.';
+        errEl.style.display = 'block'; return;
+      }
+      try {
+        const res = await fetch('/api/reports/', {
+          method: 'POST', credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          errEl.textContent = JSON.stringify(err); errEl.style.display = 'block'; return;
+        }
+        ['rpt-patient','rpt-title','rpt-summary'].forEach(id => document.getElementById(id).value = '');
+        rptLoaded = false; loadReports();
+      } catch (e) {
+        errEl.textContent = e.message; errEl.style.display = 'block';
+      }
+    });
+
+    // ── audit ─────────────────────────────────────────────────────────────────
+    let auditLoaded = false;
+    async function loadAudit() {
+      auditLoaded = true;
+      const tbody = document.getElementById('audit-body');
+      try {
+        const data = await apiFetch('/api/audit/');
+        if (!data) return;
+        if (!data.length) {
+          tbody.innerHTML = '<tr><td colspan="5"><div class="state-msg">No audit entries.</div></td></tr>';
+          return;
+        }
+        tbody.innerHTML = data.map(a => `
+          <tr>
+            <td>${fmtDate(a.timestamp)}</td>
+            <td>${a.actor_username}</td>
+            <td>${a.patient_name || '—'}</td>
+            <td><span class="${a.action === 'VIEW' ? 'badge-view' : 'badge-denied'}">${a.action}</span></td>
+            <td>${a.detail}</td>
+          </tr>
+        `).join('');
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="5"><div class="state-msg error-state">${e.message}</div></td></tr>`;
+      }
+    }
+
+    // ── uploads ───────────────────────────────────────────────────────────────
+    let uploadsLoaded = false;
+    async function loadUploads() {
+      uploadsLoaded = true;
+      const tbody = document.getElementById('uploads-body');
+      try {
+        const data = await apiFetch('/api/uploads/');
+        if (!data) return;
+        if (!data.length) {
+          tbody.innerHTML = '<tr><td colspan="5"><div class="state-msg">No documents uploaded yet.</div></td></tr>';
+          return;
+        }
+        tbody.innerHTML = data.map(u => `
+          <tr>
+            <td><span class="badge-type-${u.upload_type}">${u.upload_type.replace('_',' ')}</span></td>
+            <td><strong>${u.title}</strong></td>
+            <td>${u.notes || '—'}</td>
+            <td>${fmtDate(u.uploaded_at)}</td>
+            <td>${u.file_url ? `<a href="${u.file_url}" style="color:#2bbfab;font-weight:600;">Download</a>` : '—'}</td>
+          </tr>
+        `).join('');
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="5"><div class="state-msg error-state">${e.message}</div></td></tr>`;
+      }
+    }
+
+    // ── patient sharing key ──────────────────────────────────────────────────
+    async function loadMyKey() {
+      const output = document.getElementById('patient-share-key');
+      const error = document.getElementById('key-error');
+      try {
+        const data = await apiFetch('/api/my-key/');
+        if (data) output.textContent = data.secret_key;
+      } catch (e) {
+        error.textContent = `Could not load your sharing key: ${e.message}`;
+        error.style.display = 'block';
+      }
+    }
+
+    document.getElementById('copy-share-key').addEventListener('click', async () => {
+      const key = document.getElementById('patient-share-key').textContent;
+      if (!key || key === 'Loading…') return;
+      await navigator.clipboard.writeText(key);
+      document.getElementById('copy-share-key').textContent = 'Copied';
+      setTimeout(() => { document.getElementById('copy-share-key').textContent = 'Copy key'; }, 1600);
+    });
+
+    document.getElementById('rotate-share-key').addEventListener('click', async () => {
+      if (!window.confirm('Create a new sharing key? This immediately revokes access for every doctor currently connected to your key.')) return;
+      const error = document.getElementById('key-error');
+      error.style.display = 'none';
+      try {
+        const res = await fetch('/api/my-key/', {
+          method: 'POST', credentials: 'same-origin',
+          headers: { 'X-CSRFToken': csrfToken },
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Unable to create a new key.');
+        document.getElementById('patient-share-key').textContent = data.secret_key;
+      } catch (e) {
+        error.textContent = e.message;
+        error.style.display = 'block';
+      }
+    });
+
+    // ── doctor enters a patient-issued key ────────────────────────────────────
+    document.getElementById('unlock-patient').addEventListener('click', async () => {
+      const input = document.getElementById('patient-share-key-input');
+      const error = document.getElementById('unlock-error');
+      error.style.display = 'none';
+      error.style.color = '#b91c1c';
+      if (!input.value.trim()) {
+        error.textContent = 'Enter the key shared by the patient.';
+        error.style.display = 'block';
+        return;
+      }
+      try {
+        const res = await fetch('/api/unlock/', {
+          method: 'POST', credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+          body: JSON.stringify({ secret_key: input.value.trim() }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Could not unlock patient records.');
+        error.textContent = data.detail;
+        error.style.color = '#166534';
+        error.style.display = 'block';
+        input.value = '';
+        rxLoaded = false; rptLoaded = false; uploadsLoaded = false;
+        loadPrescriptions(); loadReports(); loadUploads();
+      } catch (e) {
+        error.textContent = e.message;
+        error.style.color = '#b91c1c';
+        error.style.display = 'block';
+      }
+    });
+
+    document.getElementById('upload-submit').addEventListener('click', async () => {
+      const errEl = document.getElementById('upload-error');
+      errEl.style.display = 'none';
+      const fileInput = document.getElementById('upload-file');
+      const title = document.getElementById('upload-title').value.trim();
+      if (!title || !fileInput.files.length) {
+        errEl.textContent = 'Title and a file are required.';
+        errEl.style.display = 'block'; return;
+      }
+      const form = new FormData();
+      form.append('patient', currentPatientId);
+      form.append('upload_type', document.getElementById('upload-type').value);
+      form.append('title', title);
+      form.append('notes', document.getElementById('upload-notes').value.trim());
+      form.append('file', fileInput.files[0]);
+      try {
+        const res = await fetch('/api/uploads/', {
+          method: 'POST', credentials: 'same-origin',
+          headers: { 'X-CSRFToken': csrfToken },
+          body: form,
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          errEl.textContent = JSON.stringify(err); errEl.style.display = 'block'; return;
+        }
+        document.getElementById('upload-title').value = '';
+        document.getElementById('upload-notes').value = '';
+        fileInput.value = '';
+        uploadsLoaded = false; loadUploads();
+      } catch (e) {
+        errEl.textContent = e.message; errEl.style.display = 'block';
+      }
+    });
+
+    // ── logout ────────────────────────────────────────────────────────────────
+    document.getElementById('logout-btn').addEventListener('click', async () => {
+      await fetch('/api/logout/', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'X-CSRFToken': csrfToken },
+      });
+      window.location.href = '/';
+    });
+
+    // ── init ──────────────────────────────────────────────────────────────────
+    let currentProviderId = null;
+    let currentPatientId  = null;
+
+    async function loadMe() {
+      const data = await apiFetch('/api/me/');
+      if (!data) return;
+      currentRole       = data.role;
+      currentProviderId = data.provider_id || null;
+      currentPatientId  = data.patient_id  || null;
+      document.getElementById('nav-username').textContent = data.username;
+
+      const banner = document.getElementById('role-banner');
+      banner.className = 'role-banner ' + currentRole;
+      const roleLabels = { patient: 'Patient', doctor: 'Doctor', admin: 'Administrator', other: 'Guest' };
+      const roleDesc = {
+        patient: 'You can view your records, upload documents, and share a key with a doctor.',
+        doctor:  'You can view consented records or enter a patient sharing key for older history.',
+        admin:   'You have full access including the audit log.',
+        other:   'You have no records assigned to your account.',
+      };
+      document.getElementById('role-text').textContent =
+        `Role: ${roleLabels[currentRole] || currentRole} — ${roleDesc[currentRole] || ''}`;
+
+      if (currentRole === 'admin') {
+        document.querySelectorAll('.admin-only').forEach(el => el.style.display = '');
+      }
+      if (currentRole === 'doctor') {
+        document.querySelectorAll('.doctor-only').forEach(el => el.style.display = '');
+        document.querySelector('[data-tab="uploads"]').textContent = 'Patient Uploads';
+        document.querySelector('#panel-uploads .section-title').textContent = 'Patient Uploaded Documents';
+      }
+      if (currentRole === 'patient') {
+        document.querySelectorAll('.patient-only').forEach(el => el.style.display = '');
+        loadMyKey();
+      }
+    }
+
+    // trigger uploads tab lazy-load
+    document.querySelectorAll('.tab').forEach(btn => {
+      if (btn.dataset.tab === 'uploads') {
+        btn.addEventListener('click', () => { if (!uploadsLoaded) loadUploads(); });
+      }
+    });
+
+    loadMe();
+    loadRecords();
+  </script>
+
+</body>
+</html>

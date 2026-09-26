@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CareBridge — Login</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+      background: #f0f4f8;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .card {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 40px 36px;
+      width: 100%;
+      max-width: 380px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.07);
+    }
+    .logo {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      margin-bottom: 28px;
+    }
+    h1 { font-size: 20px; font-weight: 700; color: #1e293b; margin-bottom: 6px; }
+    p.sub { font-size: 13px; color: #64748b; margin-bottom: 24px; }
+    label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 5px; }
+    input[type="text"], input[type="password"] {
+      width: 100%; padding: 9px 12px;
+      border: 1px solid #cbd5e1; border-radius: 6px;
+      font-size: 14px; color: #1e293b;
+      outline: none; margin-bottom: 16px;
+      transition: border-color .15s;
+    }
+    input:focus { border-color: #1d4ed8; }
+    button[type="submit"] {
+      width: 100%; padding: 10px;
+      background: #1d4ed8; color: #fff;
+      border: none; border-radius: 6px;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+      transition: background .15s;
+    }
+    button[type="submit"]:hover { background: #1e40af; }
+    .error {
+      background: #fef2f2; border: 1px solid #fca5a5;
+      color: #b91c1c; font-size: 13px;
+      padding: 9px 12px; border-radius: 6px;
+      margin-bottom: 16px; display: none;
+    }
+    .hint {
+      margin-top: 22px;
+      background: #f8fafc; border: 1px solid #e2e8f0;
+      border-radius: 6px; padding: 12px 14px;
+    }
+    .hint p { font-size: 12px; color: #64748b; margin-bottom: 6px; font-weight: 600; }
+    .hint ul { list-style: none; }
+    .hint li { font-size: 12px; color: #475569; padding: 2px 0; }
+    .hint li span { display: inline-block; width: 110px; font-weight: 600; color: #1e293b; }
+    .badge {
+      display: inline-block; font-size: 10px; font-weight: 700;
+      padding: 1px 6px; border-radius: 20px; margin-left: 4px;
+      vertical-align: middle;
+    }
+    .badge-patient  { background: #dbeafe; color: #1e40af; }
+    .badge-doctor   { background: #dcfce7; color: #166534; }
+    .badge-admin    { background: #fef9c3; color: #854d0e; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">
+      <!-- CareBridge SVG logo -->
+      <svg width="220" height="44" viewBox="0 0 220 44" role="img" aria-label="CareBridge" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Cross shape -->
+        <rect x="14" y="2"  width="8" height="8"  rx="2" fill="#1a2f5e"/>
+        <rect x="10" y="10" width="16" height="24" rx="2" fill="#1a2f5e"/>
+        <rect x="2"  y="14" width="32" height="8"  rx="2" fill="#1a2f5e"/>
+        <!-- Teal arc -->
+        <path d="M4 34 Q18 18 32 28" stroke="#2bbfab" stroke-width="4" stroke-linecap="round" fill="none"/>
+        <!-- Coral arc -->
+        <path d="M10 36 Q18 22 30 32" stroke="#e8684a" stroke-width="4" stroke-linecap="round" fill="none"/>
+        <!-- Wordmark: "Care" in navy -->
+        <text x="42" y="30" font-family="-apple-system,Segoe UI,sans-serif" font-size="20" font-weight="800" fill="#1a2f5e">Care</text>
+        <!-- Wordmark: "Bridge" in teal -->
+        <text x="87" y="30" font-family="-apple-system,Segoe UI,sans-serif" font-size="20" font-weight="800" fill="#2bbfab">Bridge</text>
+      </svg>
+      <div class="logo-sub" style="margin-top:4px;font-size:11px;color:#64748b;">IBM Bob Hackathon Demo</div>
+    </div>
+    <h1>Sign in</h1>
+    <p class="sub">Use a demo account below to explore the access-control system.</p>
+
+    <div class="error" id="error-msg"></div>
+
+    <form id="login-form">
+      {% csrf_token %}
+      <label for="username">Username</label>
+      <input type="text" id="username" name="username" placeholder="e.g. alice_patient" autocomplete="username" />
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" placeholder="demo1234" autocomplete="current-password" />
+      <button type="submit">Sign in</button>
+    </form>
+
+    <div class="hint">
+      <p>Demo credentials (password: demo1234)</p>
+      <ul>
+        <li><span>alice_patient</span><span class="badge badge-patient">patient</span> has consent</li>
+        <li><span>bob_patient</span><span class="badge badge-patient">patient</span> no consents</li>
+        <li><span>dr_carter</span><span class="badge badge-doctor">doctor</span> consented</li>
+        <li><span>dr_patel</span><span class="badge badge-doctor">doctor</span> no consent</li>
+        <li><span>admin_user</span><span class="badge badge-admin">admin</span> audit log</li>
+        <li><span>other_user</span> no records</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('login-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const errEl = document.getElementById('error-msg');
+      errEl.style.display = 'none';
+
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+      try {
+        const res = await fetch('/api/login/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+          credentials: 'same-origin',
+          body: JSON.stringify({ username, password }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          window.location.href = '/dashboard/';
+        } else {
+          errEl.textContent = data.detail || 'Login failed.';
+          errEl.style.display = 'block';
+        }
+      } catch (err) {
+        errEl.textContent = 'Network error — is the server running?';
+        errEl.style.display = 'block';
+      }
+    });
+  </script>
+</body>
+</html>
